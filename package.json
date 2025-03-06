@@ -1,0 +1,22 @@
+{
+  "name": "Evolus Order Fulfillment Configuration",
+  "version": "1.0.0",
+  "description": "",
+  "main": "none",
+  "scripts": {},
+  "author": "NetValue Technology Consulting",
+  "license": "proprietary",
+  "devDependencies": {
+    "@hitc/netsuite-types": "^2025.1.5",
+    "@types/node": "^8.10.19",
+    "@types/request": "^2.48.1",
+    "typescript": "5.8.2"
+  },
+  "dependencies": {
+    "netsuite-fasttrack-toolkit-ss2": "^7.3.1"
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "private": true
+}

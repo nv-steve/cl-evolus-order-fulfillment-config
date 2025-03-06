@@ -1,0 +1,36 @@
+# IDEs and editors
+*.iml
+*.iws
+.project
+.classpath
+*.launch
+.settings
+*.sublime-workspace
+.vscode
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Packaged SuiteCloud projects
+build
+
+# misc
+.sass-cache
+
+# Optional npm cache directory
+.npm
+
+# Lerna
+lerna-debug.log
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# Output of 'npm pack'
+*.tgz

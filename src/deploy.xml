@@ -1,0 +1,9 @@
+<deploy>
+<!--    <files>-->
+<!--        <path>~/FileCabinet/*</path>-->
+<!--    </files>-->
+    <objects>
+        <path>~/Objects/customlist_customer_type.xml</path>
+        <path>~/Objects/customrecord_3pl_fulfill_config_rule.xml</path>
+    </objects>
+</deploy>

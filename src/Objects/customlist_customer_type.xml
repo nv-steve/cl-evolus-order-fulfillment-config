@@ -1,0 +1,16 @@
+<customlist scriptid="customlist_customer_type">
+  <description>List of customer types, for example Distributor or Medical Practice.</description>
+  <isinactive>F</isinactive>
+  <isordered>T</isordered>
+  <name>Customer Type</name>
+  <customvalues>
+    <customvalue scriptid="_custtype_distributor">
+      <isinactive>F</isinactive>
+      <value>Distributor</value>
+    </customvalue>
+    <customvalue scriptid="_custtype_end_user">
+      <isinactive>F</isinactive>
+      <value>End User</value>
+    </customvalue>
+  </customvalues>
+</customlist>

@@ -1,0 +1,6 @@
+<manifest projecttype="ACCOUNTCUSTOMIZATION">
+  <projectname>Evolus Order Fulfillment Config</projectname>
+  <frameworkversion>1.0</frameworkversion>
+
+  <object>custrecord_class_shippinggroup</object>
+</manifest>

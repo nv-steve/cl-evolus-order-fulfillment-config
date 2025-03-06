@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    //"allowJs": true,
+    "module": "umd",
+    "moduleResolution": "node",
+    "target": "es2022",
+    "sourceMap": false,
+    "experimentalDecorators": true,
+    "baseUrl": ".",
+    "lib":["es2022","es2022.promise", "dom"],
+    // skip to workaround a lodash.d.ts error TS2428: All declarations of 'WeakMap' must have identical type parameters.
+    "skipLibCheck": true,
+    "paths": {
+      "N/*": [
+        //  Strange path due to SDF issue with node_modules being included in the project, as a result we've moved it
+        //  out of the project scope
+        "node_modules/@hitc/netsuite-types/N/*"
+      ]
+    }
+  },
+  "exclude":["node_modules", "test"]
+}
