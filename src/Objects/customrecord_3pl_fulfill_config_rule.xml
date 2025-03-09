@@ -24,7 +24,7 @@ This is the primary mechanism that sets the fulfillment location (i.e., 3PL faci
   <iconbuiltin>T</iconbuiltin>
   <iconindex></iconindex>
   <includeinsearchmenu>T</includeinsearchmenu>
-  <includename>T</includename>
+  <includename>F</includename>
   <isinactive>F</isinactive>
   <isordered>F</isordered>
   <numberinginit></numberinginit>
@@ -97,7 +97,8 @@ This is the primary mechanism that sets the fulfillment location (i.e., 3PL faci
       <encryptatrest>F</encryptatrest>
       <fieldtype>SELECT</fieldtype>
       <globalsearch>F</globalsearch>
-      <help>Select the destination State or Province that this rules applies to.</help>
+      <help>Select the destination State or Province that this rules applies to.&#xd;
+Leave blank (select nothing) to have this rule apply to any State/Province.</help>
       <isformula>F</isformula>
       <ismandatory>F</ismandatory>
       <isparent>F</isparent>
@@ -136,7 +137,8 @@ This is the primary mechanism that sets the fulfillment location (i.e., 3PL faci
       <encryptatrest>F</encryptatrest>
       <fieldtype>MULTISELECT</fieldtype>
       <globalsearch>F</globalsearch>
-      <help>Select the Product Catalog (i.e., class) that this rule applies to.</help>
+      <help>Select the Product Catalog (i.e., class) that this rule applies to.&#xd;
+Leave blank (select nothing) to have this rule apply to any Product Catalog.</help>
       <isformula>F</isformula>
       <ismandatory>F</ismandatory>
       <isparent>F</isparent>
@@ -189,7 +191,7 @@ This is the primary mechanism that sets the fulfillment location (i.e., 3PL faci
       <globalsearch>F</globalsearch>
       <help>The Shipping Service specified by this rule. When an order line matches this rule, this is the Shipping Item that will be assigned on the line.</help>
       <isformula>F</isformula>
-      <ismandatory>T</ismandatory>
+      <ismandatory>F</ismandatory>
       <isparent>F</isparent>
       <label>Shipping Service</label>
       <linktext></linktext>
@@ -287,7 +289,8 @@ This is the primary mechanism that sets the fulfillment location (i.e., 3PL faci
       <encryptatrest>F</encryptatrest>
       <fieldtype>MULTISELECT</fieldtype>
       <globalsearch>F</globalsearch>
-      <help>The type of customer this order is for.</help>
+      <help>The type of customer this order is for.&#xd;
+Leave blank (select nothing) to have this rule apply to any Customer Type.</help>
       <isformula>F</isformula>
       <ismandatory>F</ismandatory>
       <isparent>F</isparent>

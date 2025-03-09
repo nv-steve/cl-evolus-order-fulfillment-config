@@ -11,14 +11,35 @@ Note: Running in After Submit to ensure we don&apos;t disrupt the writing of the
   <inittriggertype>AFTERSUBMIT</inittriggertype>
   <isinactive>F</isinactive>
   <islogenabled>T</islogenabled>
-  <keephistory>ONLYWHENTESTING</keephistory>
+  <keephistory>ALWAYS</keephistory>
   <name>Set Order Fulfillment Configuration</name>
   <recordtypes>SALESORDER</recordtypes>
-  <releasestatus>TESTING</releasestatus>
+  <releasestatus>RELEASED</releasestatus>
   <runasadmin>T</runasadmin>
   <initcondition>
-    <formula></formula>
+    <formula><![CDATA["Status" IN ("Transaction Status1","Transaction Status2","Transaction Status3")]]></formula>
     <type>VISUAL_BUILDER</type>
+    <parameters>
+      <parameter>
+        <name>Status</name>
+        <value>STDBODYSTATUS</value>
+      </parameter>
+      <parameter>
+        <name>Transaction Status1</name>
+        <selectrecordtype>-164</selectrecordtype>
+        <value>14</value>
+      </parameter>
+      <parameter>
+        <name>Transaction Status2</name>
+        <selectrecordtype>-164</selectrecordtype>
+        <value>11</value>
+      </parameter>
+      <parameter>
+        <name>Transaction Status3</name>
+        <selectrecordtype>-164</selectrecordtype>
+        <value>12</value>
+      </parameter>
+    </parameters>
   </initcondition>
   <workflowstates>
     <workflowstate scriptid="workflowstate2364">

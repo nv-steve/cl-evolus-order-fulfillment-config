@@ -14,13 +14,13 @@ records for an order and updates the order with the parameters defined in those 
     <scriptdeployment scriptid="customdeploy_ofc_configure_order">
       <allemployees>F</allemployees>
       <allpartners>F</allpartners>
-      <allroles>F</allroles>
+      <allroles>T</allroles>
       <audslctrole></audslctrole>
       <isdeployed>T</isdeployed>
       <loglevel>DEBUG</loglevel>
       <recordtype>SALESORDER</recordtype>
-      <runasrole></runasrole>
-      <status>TESTING</status>
+      <runasrole>ADMINISTRATOR</runasrole>
+      <status>RELEASED</status>
     </scriptdeployment>
   </scriptdeployments>
 </workflowactionscript>
