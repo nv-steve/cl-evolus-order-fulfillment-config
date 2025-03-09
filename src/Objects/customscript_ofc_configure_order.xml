@@ -1,0 +1,26 @@
+<workflowactionscript scriptid="customscript_ofc_configure_order">
+  <description>Selects the applicable 3PL Order Fulfillment Configuration Rule&#xd;
+records for an order and updates the order with the parameters defined in those rules.</description>
+  <isinactive>F</isinactive>
+  <name>OFC : Configure Order</name>
+  <notifyadmins>F</notifyadmins>
+  <notifyemails></notifyemails>
+  <notifyowner>T</notifyowner>
+  <notifyuser>F</notifyuser>
+  <returnrecordtype></returnrecordtype>
+  <returntype></returntype>
+  <scriptfile>[/SuiteScripts/NetValue/Order Fulfillment Configuration/NV.OFC.WA_configureOrder.js]</scriptfile>
+  <scriptdeployments>
+    <scriptdeployment scriptid="customdeploy_ofc_configure_order">
+      <allemployees>F</allemployees>
+      <allpartners>F</allpartners>
+      <allroles>F</allroles>
+      <audslctrole></audslctrole>
+      <isdeployed>T</isdeployed>
+      <loglevel>DEBUG</loglevel>
+      <recordtype>SALESORDER</recordtype>
+      <runasrole></runasrole>
+      <status>TESTING</status>
+    </scriptdeployment>
+  </scriptdeployments>
+</workflowactionscript>
