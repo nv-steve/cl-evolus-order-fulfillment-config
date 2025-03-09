@@ -36,6 +36,7 @@ namespace NV {
    * Values from the order that are utilized as criterion to select applicable configuration rules.
    */
   type OrderConfigurationRuleCriterion = {
+    orderIID: number,    //  Primarily for logging and debugging purposes
     destinationCountryIID: number,
     destinationStateOrProvinceIID: number,
     customerTypeIID: number,
@@ -87,7 +88,17 @@ namespace NV {
       //  3) Iterate over the configurations and apply to the order
       //
       //
-      const configurations = NV._getApplicableFulfillmentConfigurations(NV._getOrderCriterion(context.newRecord))
+      const criterion = NV._getOrderCriterion(context.newRecord)
+      const configurations = NV._getApplicableFulfillmentConfigurations(criterion)
+      if (configurations.length === 0) {
+        //  This can happen... it shouldn't, but nothing guarantees all the rules will be there to satisfy all orders.
+        //  So, what do we do? Requirements are specific in this regard and I think this will evolve, for now we'll log
+        //  an audit and quietly exit...
+        log.info('No Applicable Configurations - Exiting', `Could not find any applicable configurations for ` +
+          `order criterion: (${JSON.stringify(criterion)})`)
+        return WF_ACTION_BOOLEAN.FALSE
+      }
+
       if (NV._orderRequiresUpdate(context.newRecord, configurations) === false) {
         log.info('Order does not need updating, exiting')
         return WF_ACTION_BOOLEAN.FALSE
@@ -126,10 +137,18 @@ namespace NV {
       //  Get the line configuration. We aren't going to be surgical about the application of the configuration. We've
       //  already determined the order needs to be updated so we'll just apply to all lines.
       const lineConfiguration = NV._findLineConfigurationThrowIfMissing(configurations, order, i)
-      //  TODO: Determine if line location is even needed!
-      // order.setSublistValue({ sublistId: 'item', fieldId: 'location', line: i, value: lineConfiguration.fulfillmentLocationIID })
-      order.setSublistValue({ sublistId: 'item', fieldId: 'custcol_shipping_method', line: i, value: lineConfiguration.shippingMethodIID })
-      log.debug(`Configured line ${i}`, `Set line ${i} to shipping method ${lineConfiguration.shippingMethodIID}`)
+
+      //  A shipping method isn't required, a rule could just be used to assign locations to an order so we need to
+      //  conditionally set the Shipping Method on the lines.
+      if (lineConfiguration.shippingMethodIID) {
+        order.setSublistValue({
+          sublistId: 'item',
+          fieldId: 'custcol_shipping_method',
+          line: i,
+          value: lineConfiguration.shippingMethodIID
+        })
+        log.debug(`Configured line ${i}`, `Set line ${i} to shipping method ${lineConfiguration.shippingMethodIID}`)
+      }
     }
   }
 
@@ -153,7 +172,6 @@ namespace NV {
     }
 
     //  Check the lines
-    //  TODO: Update to use a NFT DA instance for easy line access and filtering --HOLD-- Actually can't filter the items list because it's not an array
     for (let i = 0; i < order.getLineCount({ sublistId: 'item' }); i++) {
       //  Skip lines that aren't fulfillable
       if (_isFulfillableLine(order, i) === false) {
@@ -162,22 +180,17 @@ namespace NV {
       }
 
       const config = NV._findLineConfigurationThrowIfMissing(configurations, order, i)
-      if (!config) {
-        throw 'Failed finding a config!'
-      }
 
-      //  get the ship service and the location
-      const shippingMethod = Number(order.getSublistValue({ sublistId: 'item', fieldId: 'custcol_shipping_method', line: i }))
-      //  TODO: Determine if line location is even needed
-      // const location = Number(order.getSublistValue({ sublistId: 'item', fieldId: 'location', line: i }))
-      log.debug('Shipping and location from order', [shippingMethod/*, location*/])
-
-      //  TODO: Update after we know if line location is needed
-      if (shippingMethod !== config.shippingMethodIID/* || location !== config.fulfillmentLocationIID*/) {
-        // log.debug('Order needs updating', `Order lines ${i} shipping method ${shippingMethod} doesn't match config ` +
-        //   `method ${config.shippingMethodIID} or order line location ${location} doesn't match config location ` +
-        //   `${config.fulfillmentLocationIID}`)
-        return true
+      //  We only need to check this if the configuration actually defines a shipping method, we don't need to support
+      //  CLEARING the existing shipping method on the line
+      if (config.shippingMethodIID) {
+        //  get the ship service and compare it to the configuration to determine if an update is required
+        const tmp = order.getSublistValue({sublistId: 'item', fieldId: 'custcol_shipping_method', line: i})
+        const existingLineShippingMethod = (tmp) ? Number(tmp) : null
+        if (existingLineShippingMethod !== config.shippingMethodIID) {
+          log.debug('Order needs updating', `Order lines ${i} shipping method ${existingLineShippingMethod} doesn't match config`)
+          return true
+        }
       }
     }
 
@@ -209,6 +222,12 @@ namespace NV {
    */
   export function _findLineConfigurationThrowIfMissing(configurations: OrderFulfillmentConfiguration[], order: record.Record, lineIndex: number ): OrderFulfillmentConfiguration {
     const productCatalogIID = Number(order.getSublistValue({ sublistId: 'item', fieldId: 'class', line: lineIndex }))
+    //  If there is only a single configuration we'll return that
+    if (configurations.length === 1) {
+      return configurations[0]
+    }
+
+    //  There is more than 1, attempt to filter by product ID
     const ret = configurations.find(conf => conf.productCatalogIIDs.includes(productCatalogIID))
     if (!ret) {
       throw error.create({
@@ -226,11 +245,13 @@ namespace NV {
    */
   export function _mapConfigurationResult(result: search.Result): OrderFulfillmentConfiguration {
     const productCatalogs = result.getValue(CONFIG_RULE.FIELD.PRODUCT_CATALOG) as string
-    // log.debug('productCatalogs', typeof productCatalogs)
+    //  If there is not shipping method defined this will be an empty array which Number() will parse as 0 (<- not good)
+    const shippingMethod = result.getValue(CONFIG_RULE.FIELD.SHIP_SERVICE)
+
     return {
       iid: Number(result.id),
       fulfillmentLocationIID: Number(result.getValue(CONFIG_RULE.FIELD.FULFILL_LOCATION)),
-      shippingMethodIID: Number(result.getValue(CONFIG_RULE.FIELD.SHIP_SERVICE)),
+      shippingMethodIID: (shippingMethod) ? Number(shippingMethod) : null,
 
       //  No guarantee there will be Product Configurations and I'm not sure if that will result in null or empty array
       productCatalogIIDs: (productCatalogs) ? productCatalogs.split(',').map(x => Number(x.trim())) : null
@@ -263,6 +284,7 @@ namespace NV {
     const configResults = search.create({
       type: CONFIG_RULE.ID,
       filters: [
+        [ 'isinactive', search.Operator.IS, false ], 'AND',
         [ CONFIG_RULE.FIELD.DEST_COUNTRY, search.Operator.IS, criterion.destinationCountryIID ], 'AND',
         [ CONFIG_RULE.FIELD.DEST_STATE, search.Operator.ANYOF, [criterion.destinationStateOrProvinceIID, SELECT_NONE] ], 'AND',
         [ CONFIG_RULE.FIELD.CUSTOMER_TYPE, search.Operator.ANYOF, [criterion.customerTypeIID, SELECT_NONE] ], 'AND',
@@ -276,7 +298,7 @@ namespace NV {
     }).run().getRange({ start: 0, end: 1000 })
     log.debug('rule results', configResults)
 
-    const mapped = configResults.map(_mapConfigurationResult)
+    const mapped = configResults.map(NV._mapConfigurationResult)
 
     //  TODO: "quality" sort the results
     //  Do we need a single result? What if there are multiple product catalogs? I think that would result in needing
@@ -304,6 +326,7 @@ namespace NV {
         [ 'shipping', search.Operator.IS, false ]
       ],
       columns: [
+        { name: 'internalid', summary: search.Summary.GROUP },
         { name: 'custentity_customer_type', join: 'customer', summary: search.Summary.GROUP },
         { name: 'shipcountry', summary: search.Summary.GROUP },
         { name: 'shipstate', summary: search.Summary.GROUP },
@@ -314,7 +337,7 @@ namespace NV {
 
     //  We can have multiple product catalogs so we'll reduce the results down to a single object with an array of
     //  catalogs
-    const reduced = res.reduce<OrderConfigurationRuleCriterion>((acc, cur) => {
+    return res.reduce<OrderConfigurationRuleCriterion>((acc, cur) => {
       const customerTypeIID = cur.getValue({ name: 'custentity_customer_type', join: 'customer', summary: search.Summary.GROUP })
 
       //  Each iteration of reduce will be a new catalog (or should be). We basically just need to know if this is the
@@ -324,6 +347,7 @@ namespace NV {
         const countryCode = cur.getValue({ name: 'shipcountry', summary: search.Summary.GROUP }) as string
         const stateCode = cur.getValue({ name: 'shipstate', summary: search.Summary.GROUP }) as string
         acc = {
+          orderIID: Number(cur.getValue({ name: 'internalid', summary: search.Summary.GROUP })),
           customerTypeIID: (customerTypeIID) ? Number(customerTypeIID) : null,
           destinationCountryIID: geo.countryMapping.find(x => x.id === countryCode).uniquekey,
           destinationStateOrProvinceIID: geo.getStateByShortName(stateCode).id,
@@ -335,8 +359,6 @@ namespace NV {
       return acc
 
     }, null)
-
-    return reduced
   }
 }
 
