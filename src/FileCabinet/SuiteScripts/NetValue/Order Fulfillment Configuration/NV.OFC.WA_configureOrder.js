@@ -18,12 +18,11 @@
         if (v !== undefined) module.exports = v;
     }
     else if (typeof define === "function" && define.amd) {
-        define(["require", "exports", "N/error", "N/record", "N/search", "../NFT-SS2-7.3.1/EC_Logger", "../NFT-SS2-7.3.1/geography"], factory);
+        define(["require", "exports", "N/error", "N/search", "../NFT-SS2-7.3.1/EC_Logger", "../NFT-SS2-7.3.1/geography"], factory);
     }
 })(function (require, exports) {
     "use strict";
     const error = require("N/error");
-    const record = require("N/record");
     const search = require("N/search");
     const LogManager = require("../NFT-SS2-7.3.1/EC_Logger");
     const geo = require("../NFT-SS2-7.3.1/geography");
@@ -88,10 +87,8 @@
                     log.info('Order does not need updating, exiting');
                     return WF_ACTION_BOOLEAN.FALSE;
                 }
-                //  Update the order, first we need to get a writeable record
-                const writableOrder = record.load({ type: context.newRecord.type, id: context.newRecord.id });
-                NV._applyOrderFulfillmentConfiguration(writableOrder, configurations);
-                writableOrder.save();
+                //  Update the order
+                NV._applyOrderFulfillmentConfiguration(context.newRecord, configurations);
                 return WF_ACTION_BOOLEAN.TRUE;
             }
             catch (saveEx) {
@@ -121,12 +118,13 @@
                 //  A shipping method isn't required, a rule could just be used to assign locations to an order so we need to
                 //  conditionally set the Shipping Method on the lines.
                 if (lineConfiguration.shippingMethodIID) {
-                    order.setSublistValue({
+                    order.selectLine({ sublistId: 'item', line: i });
+                    order.setCurrentSublistValue({
                         sublistId: 'item',
                         fieldId: 'custcol_shipping_method',
-                        line: i,
                         value: lineConfiguration.shippingMethodIID
                     });
+                    order.commitLine({ sublistId: 'item' });
                     log.debug(`Configured line ${i}`, `Set line ${i} to shipping method ${lineConfiguration.shippingMethodIID}`);
                 }
             }

@@ -1,6 +1,18 @@
 <manifest projecttype="ACCOUNTCUSTOMIZATION">
   <projectname>Evolus Order Fulfillment Config</projectname>
   <frameworkversion>1.0</frameworkversion>
-
-  <object>custrecord_class_shippinggroup</object>
+  <dependencies>
+    <features>
+      <feature required="true">SERVERSIDESCRIPTING</feature>
+      <feature required="true">WORKFLOW</feature>
+      <feature required="true">CLASSES</feature>
+      <feature required="true">LOCATIONS</feature>
+      <feature required="true">ACCOUNTING</feature>
+      <feature required="true">CUSTOMRECORDS</feature>
+    </features>
+    <objects>
+      <object>custrecord_class_shippinggroup</object>
+      <object>customscript_ofc_configure_order</object>
+    </objects>
+  </dependencies>
 </manifest>

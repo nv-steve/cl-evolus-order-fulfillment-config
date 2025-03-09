@@ -104,10 +104,8 @@ namespace NV {
         return WF_ACTION_BOOLEAN.FALSE
       }
 
-      //  Update the order, first we need to get a writeable record
-      const writableOrder = record.load({ type: context.newRecord.type, id: context.newRecord.id })
-      NV._applyOrderFulfillmentConfiguration(writableOrder, configurations)
-      writableOrder.save()
+      //  Update the order
+      NV._applyOrderFulfillmentConfiguration(context.newRecord, configurations)
       return WF_ACTION_BOOLEAN.TRUE
 
     } catch(saveEx) {
@@ -141,12 +139,13 @@ namespace NV {
       //  A shipping method isn't required, a rule could just be used to assign locations to an order so we need to
       //  conditionally set the Shipping Method on the lines.
       if (lineConfiguration.shippingMethodIID) {
-        order.setSublistValue({
+        order.selectLine({ sublistId: 'item', line: i })
+        order.setCurrentSublistValue({
           sublistId: 'item',
           fieldId: 'custcol_shipping_method',
-          line: i,
           value: lineConfiguration.shippingMethodIID
         })
+        order.commitLine({ sublistId: 'item' })
         log.debug(`Configured line ${i}`, `Set line ${i} to shipping method ${lineConfiguration.shippingMethodIID}`)
       }
     }
