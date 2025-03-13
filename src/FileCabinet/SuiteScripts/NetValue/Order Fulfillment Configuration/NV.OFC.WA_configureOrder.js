@@ -45,12 +45,14 @@
         const CONFIG_RULE = {
             ID: 'customrecord_3pl_fulfill_config_rule',
             FIELD: {
+                CUSTOMER: 'custrecord_3plfcr_customer',
+                CUSTOMER_TYPE: 'custrecord_3plfcr_customer_type',
                 DEST_COUNTRY: 'custrecord_3plfcr_dest_country',
                 DEST_STATE: 'custrecord_3plfcr_dest_state',
-                CUSTOMER_TYPE: 'custrecord_3plfcr_customer_type',
+                FULFILL_LOCATION: 'custrecord_3plfcr_fulfillment_location',
+                INACTIVE: 'isinactive',
                 PRODUCT_CATALOG: 'custrecord_3plfcr_product_catalog',
-                SHIP_SERVICE: 'custrecord_3plfcr_shipping_svc',
-                FULFILL_LOCATION: 'custrecord_3plfcr_fulfillment_location'
+                SHIP_SERVICE: 'custrecord_3plfcr_shipping_svc'
             }
         };
         /**
@@ -219,12 +221,14 @@
             const productCatalogs = result.getValue(CONFIG_RULE.FIELD.PRODUCT_CATALOG);
             //  If there is not shipping method defined this will be an empty array which Number() will parse as 0 (<- not good)
             const shippingMethod = result.getValue(CONFIG_RULE.FIELD.SHIP_SERVICE);
+            const customer = result.getValue(CONFIG_RULE.FIELD.CUSTOMER);
             return {
-                iid: Number(result.id),
+                customerIID: (customer) ? Number(customer) : null,
                 fulfillmentLocationIID: Number(result.getValue(CONFIG_RULE.FIELD.FULFILL_LOCATION)),
-                shippingMethodIID: (shippingMethod) ? Number(shippingMethod) : null,
-                //  No guarantee there will be Product Configurations and I'm not sure if that will result in null or empty array
-                productCatalogIIDs: (productCatalogs) ? productCatalogs.split(',').map(x => Number(x.trim())) : null
+                iid: Number(result.id),
+                //  No guarantee there will be Product Configurations, and I'm not sure if that will result in null or empty array
+                productCatalogIIDs: (productCatalogs) ? productCatalogs.split(',').map(x => Number(x.trim())) : null,
+                shippingMethodIID: (shippingMethod) ? Number(shippingMethod) : null
             };
         }
         NV._mapConfigurationResult = _mapConfigurationResult;
@@ -240,9 +244,10 @@
             //
             //  ## Criterion
             //  ----------------------------------------------------------------------------------------------------------
+            //  Customer                    - not required (e.g., EU orders will make use of this feature)
+            //  Customer Type               - not required (e.g., US orders don't care)
             //  Destination Country         - required
             //  Destination State/Province  - not required (e.g., European orders)
-            //  Customer Type               - not required (e.g., US orders don't care)
             //  Product Catalog             - not required (US orders don't care)
             //  ----------------------------------------------------------------------------------------------------------
             //
@@ -252,13 +257,15 @@
             const configResults = search.create({
                 type: CONFIG_RULE.ID,
                 filters: [
-                    ['isinactive', search.Operator.IS, false], 'AND',
+                    [CONFIG_RULE.FIELD.INACTIVE, search.Operator.IS, false], 'AND',
+                    [CONFIG_RULE.FIELD.CUSTOMER, search.Operator.ANYOF, [criterion.customerIID, SELECT_NONE]], 'AND',
+                    [CONFIG_RULE.FIELD.CUSTOMER_TYPE, search.Operator.ANYOF, [criterion.customerTypeIID, SELECT_NONE]], 'AND',
                     [CONFIG_RULE.FIELD.DEST_COUNTRY, search.Operator.IS, criterion.destinationCountryIID], 'AND',
                     [CONFIG_RULE.FIELD.DEST_STATE, search.Operator.ANYOF, [criterion.destinationStateOrProvinceIID, SELECT_NONE]], 'AND',
-                    [CONFIG_RULE.FIELD.CUSTOMER_TYPE, search.Operator.ANYOF, [criterion.customerTypeIID, SELECT_NONE]], 'AND',
                     [CONFIG_RULE.FIELD.PRODUCT_CATALOG, search.Operator.ANYOF, [...criterion.productCatalogIIDs, SELECT_NONE]]
                 ],
                 columns: [
+                    CONFIG_RULE.FIELD.CUSTOMER,
                     CONFIG_RULE.FIELD.FULFILL_LOCATION,
                     CONFIG_RULE.FIELD.SHIP_SERVICE,
                     CONFIG_RULE.FIELD.PRODUCT_CATALOG
@@ -271,6 +278,8 @@
             //  multiple configurations?
             //  No, this needs more thought.
             //
+            //  Note: Sorting with: (b-a) to get records with customer IIDs first, then nulls at the end
+            mapped.sort((a, b) => b.customerIID - a.customerIID);
             return mapped;
         }
         NV._getApplicableFulfillmentConfigurations = _getApplicableFulfillmentConfigurations;
@@ -287,15 +296,16 @@
                 filters: [
                     ['internalid', search.Operator.IS, order.id], 'AND',
                     ['mainline', search.Operator.IS, false], 'AND',
-                    ['taxline', search.Operator.IS, false], 'AND',
-                    ['shipping', search.Operator.IS, false]
+                    ['shipping', search.Operator.IS, false], 'AND',
+                    ['taxline', search.Operator.IS, false]
                 ],
                 columns: [
-                    { name: 'internalid', summary: search.Summary.GROUP },
+                    { name: 'class', summary: search.Summary.GROUP },
                     { name: 'custentity_customer_type', join: 'customer', summary: search.Summary.GROUP },
+                    { name: 'entity', summary: search.Summary.GROUP },
+                    { name: 'internalid', summary: search.Summary.GROUP },
                     { name: 'shipcountry', summary: search.Summary.GROUP },
-                    { name: 'shipstate', summary: search.Summary.GROUP },
-                    { name: 'class', summary: search.Summary.GROUP }
+                    { name: 'shipstate', summary: search.Summary.GROUP }
                 ]
             }).run().getRange({ start: 0, end: 1000 });
             log.debug('order search results', (res.length > 0) ? res[0] : null);
@@ -310,10 +320,11 @@
                     const countryCode = cur.getValue({ name: 'shipcountry', summary: search.Summary.GROUP });
                     const stateCode = cur.getValue({ name: 'shipstate', summary: search.Summary.GROUP });
                     acc = {
-                        orderIID: Number(cur.getValue({ name: 'internalid', summary: search.Summary.GROUP })),
+                        customerIID: Number(cur.getValue({ name: 'name', summary: search.Summary.GROUP })),
                         customerTypeIID: (customerTypeIID) ? Number(customerTypeIID) : null,
                         destinationCountryIID: geo.countryMapping.find(x => x.id === countryCode).uniquekey,
                         destinationStateOrProvinceIID: geo.getStateByShortName(stateCode).id,
+                        orderIID: Number(cur.getValue({ name: 'internalid', summary: search.Summary.GROUP })),
                         productCatalogIIDs: []
                     };
                 }
