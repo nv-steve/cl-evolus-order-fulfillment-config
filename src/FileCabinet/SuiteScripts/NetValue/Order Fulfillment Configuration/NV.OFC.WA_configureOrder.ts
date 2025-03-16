@@ -13,10 +13,11 @@
  * @NScriptType workflowactionscript
  **/
 
-import { EntryPoints } from 'N/types'
+import {EntryPoints} from 'N/types'
 import * as error from 'N/error'
 import * as record from 'N/record'
 import * as search from 'N/search'
+import {Sort} from 'N/search'
 import * as LogManager from '../NFT-SS2-7.3.1/EC_Logger'
 import * as geo from '../NFT-SS2-7.3.1/geography'
 
@@ -46,6 +47,9 @@ namespace NV {
 
   type OrderFulfillmentConfiguration = {
     customerIID: number,
+    customerTypeIID: number,
+    destinationCountryIID: number,
+    destinationStateOrProvinceIID: number,
     fulfillmentLocationIID: number,
     iid: number,
     productCatalogIIDs: number[],
@@ -56,19 +60,34 @@ namespace NV {
    * "3PL Order Fulfillment Configuration Rule" record (customrecord_3pl_fulfill_config_rule) constants
    * @private
    */
-  const CONFIG_RULE = {
-    ID: 'customrecord_3pl_fulfill_config_rule',
-    FIELD: {
-      CUSTOMER: 'custrecord_3plfcr_customer',
-      CUSTOMER_TYPE: 'custrecord_3plfcr_customer_type',
-      DEST_COUNTRY: 'custrecord_3plfcr_dest_country',
-      DEST_STATE: 'custrecord_3plfcr_dest_state',
-      FULFILL_LOCATION: 'custrecord_3plfcr_fulfillment_location',
-      INACTIVE: 'isinactive',
-      PRODUCT_CATALOG: 'custrecord_3plfcr_product_catalog',
-      SHIP_SERVICE: 'custrecord_3plfcr_shipping_svc'
-    }
+const CONFIG_RULE = {
+  ID: 'customrecord_3pl_fulfill_config_rule',
+  FIELD: {
+    CUSTOMER: 'custrecord_3plfcr_customer',
+    CUSTOMER_TYPE: 'custrecord_3plfcr_customer_type',
+    DEST_COUNTRY: 'custrecord_3plfcr_dest_country',
+    DEST_STATE: 'custrecord_3plfcr_dest_state',
+    FULFILL_LOCATION: 'custrecord_3plfcr_fulfillment_location',
+    INACTIVE: 'isinactive',
+    PRODUCT_CATALOG: 'custrecord_3plfcr_product_catalog',
+    SHIP_SERVICE: 'custrecord_3plfcr_shipping_svc'
   }
+}
+
+  /**
+   *
+   * @private
+   */
+  const SALES_ORDER = {
+  FIELD: {
+    APPLIED_CONF: 'custbody_applied_fulfillment_conf',
+    LOCATION: 'location'
+  },
+  LINE_FIELD: {
+    APPLIED_CONF: 'custcol_applied_fulfillment_conf',
+    SHIPPING_METHOD: 'custcol_shipping_method'
+  }
+}
 
   /**
    * Script entrypoint
@@ -91,7 +110,8 @@ namespace NV {
       //  2) Search for the matching configurations
       //  3) Iterate over the configurations and apply to the order
       //
-      //
+      //  The return value from this function indicates success or fail of the operation, not that an update was
+      //  actually performed. Basically, a FALSE response is treated as an error condition.
       const criterion = NV._getOrderCriterion(context.newRecord)
       const configurations = NV._getApplicableFulfillmentConfigurations(criterion)
       if (configurations.length === 0) {
@@ -105,7 +125,7 @@ namespace NV {
 
       if (NV._orderRequiresUpdate(context.newRecord, configurations) === false) {
         log.info('Order does not need updating, exiting')
-        return WF_ACTION_BOOLEAN.FALSE
+        return WF_ACTION_BOOLEAN.TRUE
       }
 
       //  Update the order
@@ -126,12 +146,15 @@ namespace NV {
   export function _applyOrderFulfillmentConfiguration(order: record.Record, configurations: OrderFulfillmentConfiguration[]): void {
     const mainlineConfiguration = configurations[0]
 
-    order.setValue({ fieldId: 'location', value: mainlineConfiguration.fulfillmentLocationIID })
+    const ITEM_LIST_ID = 'item'
+
+    order.setValue({ fieldId: SALES_ORDER.FIELD.APPLIED_CONF, value: mainlineConfiguration.iid })
+    order.setValue({ fieldId: SALES_ORDER.FIELD.LOCATION, value: mainlineConfiguration.fulfillmentLocationIID })
     log.debug(`Set mainline location to ${mainlineConfiguration.fulfillmentLocationIID}`)
 
     //  Iterate over the lines and for each fulfillable line (i.e., qty not null, in this case) look for a matching
     //  configuration record and apply its settings to the line fields.
-    for (let i = 0; i < order.getLineCount({ sublistId: 'item' }); i++) {
+    for (let i = 0; i < order.getLineCount({ sublistId: ITEM_LIST_ID }); i++) {
       if (NV._isFulfillableLine(order, i) === false) {
         continue
       }
@@ -143,13 +166,18 @@ namespace NV {
       //  A shipping method isn't required, a rule could just be used to assign locations to an order so we need to
       //  conditionally set the Shipping Method on the lines.
       if (lineConfiguration.shippingMethodIID) {
-        order.selectLine({ sublistId: 'item', line: i })
+        order.selectLine({ sublistId: ITEM_LIST_ID, line: i })
         order.setCurrentSublistValue({
-          sublistId: 'item',
-          fieldId: 'custcol_shipping_method',
+          sublistId: ITEM_LIST_ID,
+          fieldId: SALES_ORDER.LINE_FIELD.SHIPPING_METHOD,
           value: lineConfiguration.shippingMethodIID
         })
-        order.commitLine({ sublistId: 'item' })
+        order.setCurrentSublistValue({
+          sublistId: ITEM_LIST_ID,
+          fieldId: SALES_ORDER.LINE_FIELD.APPLIED_CONF,
+          value: lineConfiguration.iid
+        })
+        order.commitLine({ sublistId: ITEM_LIST_ID })
         log.debug(`Configured line ${i}`, `Set line ${i} to shipping method ${lineConfiguration.shippingMethodIID}`)
       }
     }
@@ -167,7 +195,7 @@ namespace NV {
 
     //  For header stuff we'll just use the first configuration
     const headerConfiguration = configurations[0]
-    const curLocation = order.getValue('location')
+    const curLocation = order.getValue(SALES_ORDER.FIELD.LOCATION)
     if (curLocation != headerConfiguration.fulfillmentLocationIID) {
       log.debug('Order requires update', `Current header location ${curLocation} doesn't match configuration ` +
         `location ${headerConfiguration.fulfillmentLocationIID}`)
@@ -188,7 +216,7 @@ namespace NV {
       //  CLEARING the existing shipping method on the line
       if (config.shippingMethodIID) {
         //  get the ship service and compare it to the configuration to determine if an update is required
-        const tmp = order.getSublistValue({sublistId: 'item', fieldId: 'custcol_shipping_method', line: i})
+        const tmp = order.getSublistValue({sublistId: 'item', fieldId: SALES_ORDER.LINE_FIELD.SHIPPING_METHOD, line: i})
         const existingLineShippingMethod = (tmp) ? Number(tmp) : null
         if (existingLineShippingMethod !== config.shippingMethodIID) {
           log.debug('Order needs updating', `Order lines ${i} shipping method ${existingLineShippingMethod} doesn't match config`)
@@ -230,13 +258,17 @@ namespace NV {
       return configurations[0]
     }
 
+    //  It's possible we have two configurations, each with a different catalog, and we have an order with two lines,
+    //  each with a different catalog. I think in this case we want to match the line with whatever config supports its
+    //  catalog.
+    //
+    //  If we search and there are no configurations that explicitly support the line catalog we can just return the
+    //  first configuration.
+    //
     //  There is more than 1, attempt to filter by product ID
-    const ret = configurations.find(conf => conf.productCatalogIIDs.includes(productCatalogIID))
+    const ret = configurations.find(conf => conf.productCatalogIIDs && conf.productCatalogIIDs.includes(productCatalogIID))
     if (!ret) {
-      throw error.create({
-        name: 'MISSING_REQUIRED_LINE_CONFIGURATION',
-        message: `Unable to find an applicable configuration for line ${lineIndex}, product catalog ${productCatalogIID}`
-      })
+      return configurations[0]
     }
     return ret
   }
@@ -251,9 +283,15 @@ namespace NV {
     //  If there is not shipping method defined this will be an empty array which Number() will parse as 0 (<- not good)
     const shippingMethod = result.getValue(CONFIG_RULE.FIELD.SHIP_SERVICE)
     const customer = result.getValue(CONFIG_RULE.FIELD.CUSTOMER)
+    const customerType = result.getValue(CONFIG_RULE.FIELD.CUSTOMER_TYPE)
+    const destinationCountry = result.getValue(CONFIG_RULE.FIELD.DEST_COUNTRY)
+    const destinationState = result.getValue(CONFIG_RULE.FIELD.DEST_STATE)
 
     return {
       customerIID: (customer) ? Number(customer) : null,
+      customerTypeIID: (customerType) ? Number(customerType) : null,
+      destinationCountryIID: (destinationCountry) ? Number(destinationCountry) : null,
+      destinationStateOrProvinceIID: (destinationState) ? Number(destinationState) : null,
       fulfillmentLocationIID: Number(result.getValue(CONFIG_RULE.FIELD.FULFILL_LOCATION)),
       iid: Number(result.id),
 
@@ -283,39 +321,76 @@ namespace NV {
     //  Product Catalog             - not required (US orders don't care)
     //  ----------------------------------------------------------------------------------------------------------
     //
+    //  For a rule that will only allow a single product catalog we want to search for rules that contain ALL the
+    //  catalogs on the order, rather than any. So restricting Mira Loma to toxin at launch is a good example, if an
+    //  order has filler it should NOT route to ML.
+    //
+    //
     //  The search can yield multiple results due to the design of filters with a none option, however these are lower
     //  grade results, and we want to sort them out or down and select only the single match off the top.
     const SELECT_NONE = '@NONE@'
+    const SEARCH_EXP_OP = { AND: 'AND', OR: 'OR' }
 
     const configResults = search.create({
       type: CONFIG_RULE.ID,
       filters: [
-        [ CONFIG_RULE.FIELD.INACTIVE, search.Operator.IS, false ], 'AND',
-        [ CONFIG_RULE.FIELD.CUSTOMER, search.Operator.ANYOF, [criterion.customerIID, SELECT_NONE] ], 'AND',
-        [ CONFIG_RULE.FIELD.CUSTOMER_TYPE, search.Operator.ANYOF, [criterion.customerTypeIID, SELECT_NONE] ], 'AND',
-        [ CONFIG_RULE.FIELD.DEST_COUNTRY, search.Operator.IS, criterion.destinationCountryIID ], 'AND',
-        [ CONFIG_RULE.FIELD.DEST_STATE, search.Operator.ANYOF, [criterion.destinationStateOrProvinceIID, SELECT_NONE] ], 'AND',
-        [ CONFIG_RULE.FIELD.PRODUCT_CATALOG, search.Operator.ANYOF, [...criterion.productCatalogIIDs, SELECT_NONE] ]
+        [ CONFIG_RULE.FIELD.INACTIVE, search.Operator.IS, false ], SEARCH_EXP_OP.AND,
+        [ CONFIG_RULE.FIELD.CUSTOMER, search.Operator.ANYOF, [criterion.customerIID, SELECT_NONE] ], SEARCH_EXP_OP.AND,
+        [ CONFIG_RULE.FIELD.CUSTOMER_TYPE, search.Operator.ANYOF, [criterion.customerTypeIID, SELECT_NONE] ], SEARCH_EXP_OP.AND,
+        [ CONFIG_RULE.FIELD.DEST_COUNTRY, search.Operator.IS, criterion.destinationCountryIID ], SEARCH_EXP_OP.AND,
+        [ CONFIG_RULE.FIELD.DEST_STATE, search.Operator.ANYOF, [criterion.destinationStateOrProvinceIID, SELECT_NONE] ], SEARCH_EXP_OP.AND,
+
+        //  Rules must support ALL the catalogs on the  - wait... this might not work. This will break for per-line rules
+        //  We want to match rules that define all the catalogs AND some of the catalogs; a quandary. This feature isn't
+        //  needed for now so I'll leave it as-is (strong support for all catalogs or no catalogs matching) and adjust
+        //  if the feature is needed in the future.
+        [
+          [ CONFIG_RULE.FIELD.PRODUCT_CATALOG, search.Operator.ALLOF, [...criterion.productCatalogIIDs] ], SEARCH_EXP_OP.OR,
+          [ CONFIG_RULE.FIELD.PRODUCT_CATALOG, search.Operator.ANYOF, [SELECT_NONE] ]
+        ]
       ],
       columns: [
+        { name: 'internalid', sort: Sort.DESC },
+        CONFIG_RULE.FIELD.DEST_COUNTRY,
+        CONFIG_RULE.FIELD.DEST_STATE,
         CONFIG_RULE.FIELD.CUSTOMER,
+        CONFIG_RULE.FIELD.CUSTOMER_TYPE,
         CONFIG_RULE.FIELD.FULFILL_LOCATION,
         CONFIG_RULE.FIELD.SHIP_SERVICE,
         CONFIG_RULE.FIELD.PRODUCT_CATALOG
       ]
     }).run().getRange({ start: 0, end: 1000 })
     log.debug('rule results', configResults)
+    if (configResults.length > 1) {
+      log.warn(`${configResults.length} 3PL Config Results Found`)
+    }
 
     const mapped = configResults.map(NV._mapConfigurationResult)
+    log.debug('unsorted configurations', mapped)
 
-    //  TODO: "quality" sort the results
-    //  Do we need a single result? What if there are multiple product catalogs? I think that would result in needing
-    //  multiple configurations?
-    //  No, this needs more thought.
-    //
     //  Note: Sorting with: (b-a) to get records with customer IIDs first, then nulls at the end
-    mapped.sort((a:OrderFulfillmentConfiguration, b:OrderFulfillmentConfiguration) => b.customerIID - a.customerIID)
+    //  reverse() call is needed to get the most specific results first, which is what we want
+    mapped.sort(NV._qualitySortConfigRules).reverse()
     return mapped
+  }
+
+  /**
+   *
+   * @param a
+   * @param b
+   */
+  export function _qualitySortConfigRules(a: OrderFulfillmentConfiguration, b: OrderFulfillmentConfiguration): number {
+    if (a.customerIID > b.customerIID) return 1
+    if (a.customerIID < b.customerIID) return -1
+    if (a.shippingMethodIID > b.customerIID) return 1
+    if (a.shippingMethodIID < b.shippingMethodIID) return -1
+    if (a.productCatalogIIDs > b.productCatalogIIDs) return 1
+    if (a.productCatalogIIDs < b.productCatalogIIDs) return -1
+    if (a.destinationCountryIID > b.destinationCountryIID) return 1
+    if (a.destinationCountryIID < b.destinationCountryIID) return -1
+    if (a.destinationStateOrProvinceIID > b.destinationStateOrProvinceIID) return 1
+    if (a.destinationStateOrProvinceIID > b.destinationStateOrProvinceIID) return -1
+    return 0
   }
 
   /**
@@ -358,7 +433,7 @@ namespace NV {
         const countryCode = cur.getValue({ name: 'shipcountry', summary: search.Summary.GROUP }) as string
         const stateCode = cur.getValue({ name: 'shipstate', summary: search.Summary.GROUP }) as string
         acc = {
-          customerIID: Number(cur.getValue({ name: 'name', summary: search.Summary.GROUP })),
+          customerIID: Number(cur.getValue({ name: 'entity', summary: search.Summary.GROUP })),
           customerTypeIID: (customerTypeIID) ? Number(customerTypeIID) : null,
           destinationCountryIID: geo.countryMapping.find(x => x.id === countryCode).uniquekey,
           destinationStateOrProvinceIID: geo.getStateByShortName(stateCode).id,

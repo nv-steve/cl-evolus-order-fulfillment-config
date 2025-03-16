@@ -8,7 +8,7 @@ records for an order and updates the order with the parameters defined in those 
   <notifyowner>T</notifyowner>
   <notifyuser>F</notifyuser>
   <returnrecordtype></returnrecordtype>
-  <returntype></returntype>
+  <returntype>CHECKBOX</returntype>
   <scriptfile>[/SuiteScripts/NetValue/Order Fulfillment Configuration/NV.OFC.WA_configureOrder.js]</scriptfile>
   <scriptdeployments>
     <scriptdeployment scriptid="customdeploy_ofc_configure_order">

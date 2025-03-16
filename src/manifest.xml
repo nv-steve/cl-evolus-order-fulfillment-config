@@ -12,7 +12,10 @@
     </features>
     <objects>
       <object>custrecord_class_shippinggroup</object>
-      <object>customscript_ofc_configure_order</object>
+      <object>customlist_customer_type</object>
+      <object>custbody_integration_status</object>
+      <object>customlist_integration_status</object>
+
     </objects>
   </dependencies>
 </manifest>

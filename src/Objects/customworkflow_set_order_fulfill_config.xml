@@ -17,9 +17,18 @@ Note: Running in After Submit to ensure we don&apos;t disrupt the writing of the
   <releasestatus>RELEASED</releasestatus>
   <runasadmin>T</runasadmin>
   <initcondition>
-    <formula><![CDATA["Status" IN ("Transaction Status1","Transaction Status2","Transaction Status3")]]></formula>
+    <formula><![CDATA["Fulfillment Config Application Status" IN ("Generic Processing Status1") AND "Status" IN ("Transaction Status1","Transaction Status2","Transaction Status3")]]></formula>
     <type>VISUAL_BUILDER</type>
     <parameters>
+      <parameter>
+        <name>Fulfillment Config Application Status</name>
+        <value>[scriptid=custbody_fulfill_config_apply_statu]</value>
+      </parameter>
+      <parameter>
+        <name>Generic Processing Status1</name>
+        <selectrecordtype>[scriptid=customlist_generic_processing_status]</selectrecordtype>
+        <value>[scriptid=customlist_generic_processing_status._gps__pending]</value>
+      </parameter>
       <parameter>
         <name>Status</name>
         <value>STDBODYSTATUS</value>
@@ -41,6 +50,25 @@ Note: Running in After Submit to ensure we don&apos;t disrupt the writing of the
       </parameter>
     </parameters>
   </initcondition>
+  <workflowcustomfields>
+    <workflowcustomfield scriptid="custworkflow_config_application_result">
+      <applyformatting>F</applyformatting>
+      <defaultchecked>F</defaultchecked>
+      <defaultselection></defaultselection>
+      <defaultvalue></defaultvalue>
+      <description>The result of the WF that selects and applies the configuration. False is an error condition and should be handled accordingly.</description>
+      <displaytype>NORMAL</displaytype>
+      <dynamicdefault></dynamicdefault>
+      <fieldtype>CHECKBOX</fieldtype>
+      <help></help>
+      <label>Configuration Application Result</label>
+      <linktext></linktext>
+      <maxvalue></maxvalue>
+      <minvalue></minvalue>
+      <selectrecordtype></selectrecordtype>
+      <storevalue>T</storevalue>
+    </workflowcustomfield>
+  </workflowcustomfields>
   <workflowstates>
     <workflowstate scriptid="workflowstate_run">
       <description>The singular State the workflow will execute.</description>
@@ -54,7 +82,7 @@ Note: Running in After Submit to ensure we don&apos;t disrupt the writing of the
           <contexttypes>ACTION|BANKCONNECTIVITY|BANKSTATEMENTPARSER|BUNDLEINSTALLATION|CLIENT|CSVIMPORT|CUSTOMGLLINES|CUSTOMMASSUPDATE|RECORDACTION|DATASETBUILDER|DEBUGGER|EMAILCAPTURE|FICONNECTIVITY|FIPARSER|MAPREDUCE|OCRPLUGIN|OFFLINECLIENT|OTHER|PAYMENTPOSTBACK|PAYMENTGATEWAY|PLATFORMEXTENSION|PORTLET|PROMOTIONS|CONSOLRATEADJUSTOR|RESTWEBSERVICES|RESTLET|ADVANCEDREVREC|SCHEDULED|SDFINSTALLATION|SHIPPINGPARTNERS|WEBSERVICES|SUITELET|TAXCALCULATION|USEREVENT|USERINTERFACE|WORKBOOKBUILDER|WORKFLOW</contexttypes>
           <eventtypes></eventtypes>
           <isinactive>F</isinactive>
-          <resultfield></resultfield>
+          <resultfield>[scriptid=customworkflow_set_order_fulfill_config.custworkflow_config_application_result]</resultfield>
           <scheduledelay></scheduledelay>
           <schedulemode>DELAY</schedulemode>
           <schedulerecurrence></schedulerecurrence>
@@ -66,6 +94,68 @@ Note: Running in After Submit to ensure we don&apos;t disrupt the writing of the
             <type>VISUAL_BUILDER</type>
           </initcondition>
         </customaction>
+        <setfieldvalueaction scriptid="workflowaction_set_status_complete">
+          <clienttriggerfields></clienttriggerfields>
+          <conditionsavedsearch></conditionsavedsearch>
+          <contexttypes>ACTION|BANKCONNECTIVITY|BANKSTATEMENTPARSER|BUNDLEINSTALLATION|CLIENT|CSVIMPORT|CUSTOMGLLINES|CUSTOMMASSUPDATE|RECORDACTION|DATASETBUILDER|DEBUGGER|EMAILCAPTURE|FICONNECTIVITY|FIPARSER|MAPREDUCE|OCRPLUGIN|OFFLINECLIENT|OTHER|PAYMENTPOSTBACK|PAYMENTGATEWAY|PLATFORMEXTENSION|PORTLET|PROMOTIONS|CONSOLRATEADJUSTOR|RESTWEBSERVICES|RESTLET|ADVANCEDREVREC|SCHEDULED|SDFINSTALLATION|SHIPPINGPARTNERS|WEBSERVICES|SUITELET|TAXCALCULATION|USEREVENT|USERINTERFACE|WORKBOOKBUILDER|WORKFLOW</contexttypes>
+          <eventtypes></eventtypes>
+          <field>[scriptid=custbody_fulfill_config_apply_statu]</field>
+          <isinactive>F</isinactive>
+          <scheduledelay></scheduledelay>
+          <schedulemode>DELAY</schedulemode>
+          <schedulerecurrence></schedulerecurrence>
+          <scheduletimeofday></scheduletimeofday>
+          <scheduletimeunit></scheduletimeunit>
+          <valuechecked>F</valuechecked>
+          <valuedate></valuedate>
+          <valuefield></valuefield>
+          <valueformula></valueformula>
+          <valuejoinfield></valuejoinfield>
+          <valueselect>[scriptid=customlist_generic_processing_status._gps_complete]</valueselect>
+          <valuetext></valuetext>
+          <valuetype>STATIC</valuetype>
+          <initcondition>
+            <formula><![CDATA[isChecked("Workflow:Configuration Application Result") = 'T']]></formula>
+            <type>VISUAL_BUILDER</type>
+            <parameters>
+              <parameter>
+                <name>Workflow:Configuration Application Result</name>
+                <value>[scriptid=customworkflow_set_order_fulfill_config.custworkflow_config_application_result]</value>
+              </parameter>
+            </parameters>
+          </initcondition>
+        </setfieldvalueaction>
+        <setfieldvalueaction scriptid="workflowaction_set_status_error">
+          <clienttriggerfields></clienttriggerfields>
+          <conditionsavedsearch></conditionsavedsearch>
+          <contexttypes>ACTION|BANKCONNECTIVITY|BANKSTATEMENTPARSER|BUNDLEINSTALLATION|CLIENT|CSVIMPORT|CUSTOMGLLINES|CUSTOMMASSUPDATE|RECORDACTION|DATASETBUILDER|DEBUGGER|EMAILCAPTURE|FICONNECTIVITY|FIPARSER|MAPREDUCE|OCRPLUGIN|OFFLINECLIENT|OTHER|PAYMENTPOSTBACK|PAYMENTGATEWAY|PLATFORMEXTENSION|PORTLET|PROMOTIONS|CONSOLRATEADJUSTOR|RESTWEBSERVICES|RESTLET|ADVANCEDREVREC|SCHEDULED|SDFINSTALLATION|SHIPPINGPARTNERS|WEBSERVICES|SUITELET|TAXCALCULATION|USEREVENT|USERINTERFACE|WORKBOOKBUILDER|WORKFLOW</contexttypes>
+          <eventtypes></eventtypes>
+          <field>[scriptid=custbody_fulfill_config_apply_statu]</field>
+          <isinactive>F</isinactive>
+          <scheduledelay></scheduledelay>
+          <schedulemode>DELAY</schedulemode>
+          <schedulerecurrence></schedulerecurrence>
+          <scheduletimeofday></scheduletimeofday>
+          <scheduletimeunit></scheduletimeunit>
+          <valuechecked>F</valuechecked>
+          <valuedate></valuedate>
+          <valuefield></valuefield>
+          <valueformula></valueformula>
+          <valuejoinfield></valuejoinfield>
+          <valueselect>[scriptid=customlist_generic_processing_status._gps_error]</valueselect>
+          <valuetext></valuetext>
+          <valuetype>STATIC</valuetype>
+          <initcondition>
+            <formula><![CDATA[isChecked("Workflow:Configuration Application Result") = 'F']]></formula>
+            <type>VISUAL_BUILDER</type>
+            <parameters>
+              <parameter>
+                <name>Workflow:Configuration Application Result</name>
+                <value>[scriptid=customworkflow_set_order_fulfill_config.custworkflow_config_application_result]</value>
+              </parameter>
+            </parameters>
+          </initcondition>
+        </setfieldvalueaction>
       </workflowactions>
     </workflowstate>
   </workflowstates>

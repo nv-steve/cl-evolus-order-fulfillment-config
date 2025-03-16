@@ -1,0 +1,24 @@
+<customlist scriptid="customlist_generic_processing_status">
+  <description></description>
+  <isinactive>F</isinactive>
+  <isordered>T</isordered>
+  <name>Generic Processing Status</name>
+  <customvalues>
+    <customvalue scriptid="_gps__pending">
+      <isinactive>F</isinactive>
+      <value>Pending</value>
+    </customvalue>
+    <customvalue scriptid="_gps_complete">
+      <isinactive>F</isinactive>
+      <value>Complete</value>
+    </customvalue>
+    <customvalue scriptid="_gps_error">
+      <isinactive>F</isinactive>
+      <value>Error</value>
+    </customvalue>
+    <customvalue scriptid="_gps_none">
+      <isinactive>F</isinactive>
+      <value>- None -</value>
+    </customvalue>
+  </customvalues>
+</customlist>
