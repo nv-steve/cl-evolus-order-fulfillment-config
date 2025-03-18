@@ -11,5 +11,7 @@
         <path>~/Objects/customscript_ofc_configure_order.xml</path>
         <path>~/Objects/customworkflow_set_order_fulfill_config.xml</path>
         <path>~/Objects/customsearch_alert_fulfl_conf_apply_fail.xml</path>
+        <path>~/Objects/custbody_applied_fulfillment_conf.xml</path>
+        <path>~/Objects/custcol_applied_fulfillment_conf.xml</path>
     </objects>
 </deploy>
