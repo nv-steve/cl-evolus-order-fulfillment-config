@@ -40,7 +40,7 @@ namespace NV {
     customerIID: number,
     customerTypeIID: number,
     destinationCountryIID: number,
-    destinationStateOrProvinceIID: number,
+    destinationStateOrProvinceIID: number|null,
     orderIID: number,    //  Primarily for logging and debugging purposes
     productCatalogIIDs: number[]
   }
@@ -431,12 +431,24 @@ const CONFIG_RULE = {
       if (!acc) {
         //  first run, create the record
         const countryCode = cur.getValue({ name: 'shipcountry', summary: search.Summary.GROUP }) as string
+        log.debug('countryCode', countryCode)
         const stateCode = cur.getValue({ name: 'shipstate', summary: search.Summary.GROUP }) as string
+        log.debug('stateCode', stateCode)
+
+        //  Handling of states is complicated because NetSuite will sometimes have an IID of a State record as the
+        //  value and sometimes it will be a free-form text value of the name. This depends on whether the country and
+        //  state data is loaded in the account, which itself is an odd situation as you can't import it.
+        //
+        //  For now we only need state support for the US, if we need international state support this will need to be
+        //  addressed.
+        const USA_COUNTRY_CODE = 'US'
+        const stateIID = (countryCode === USA_COUNTRY_CODE) ? geo.getStateByShortName(stateCode).id : null
+
         acc = {
           customerIID: Number(cur.getValue({ name: 'entity', summary: search.Summary.GROUP })),
           customerTypeIID: (customerTypeIID) ? Number(customerTypeIID) : null,
           destinationCountryIID: geo.countryMapping.find(x => x.id === countryCode).uniquekey,
-          destinationStateOrProvinceIID: geo.getStateByShortName(stateCode).id,
+          destinationStateOrProvinceIID: stateIID,
           orderIID: Number(cur.getValue({ name: 'internalid', summary: search.Summary.GROUP })),
           productCatalogIIDs: []
         }
