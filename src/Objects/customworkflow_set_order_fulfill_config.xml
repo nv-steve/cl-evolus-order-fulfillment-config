@@ -14,7 +14,7 @@ Note: Running in After Submit to ensure we don&apos;t disrupt the writing of the
   <keephistory>ALWAYS</keephistory>
   <name>Set Order Fulfillment Configuration</name>
   <recordtypes>SALESORDER</recordtypes>
-  <releasestatus>RELEASED</releasestatus>
+  <releasestatus>NOTINITIATING</releasestatus>
   <runasadmin>T</runasadmin>
   <initcondition>
     <formula><![CDATA["Fulfillment Config Application Status" IN ("Generic Processing Status1") AND "Status" IN ("Transaction Status1","Transaction Status2","Transaction Status3")]]></formula>
@@ -27,7 +27,7 @@ Note: Running in After Submit to ensure we don&apos;t disrupt the writing of the
       <parameter>
         <name>Generic Processing Status1</name>
         <selectrecordtype>[scriptid=customlist_generic_processing_status]</selectrecordtype>
-        <value>[scriptid=customlist_generic_processing_status._gps__pending]</value>
+        <value>[scriptid=customlist_generic_processing_status._gps_pending]</value>
       </parameter>
       <parameter>
         <name>Status</name>

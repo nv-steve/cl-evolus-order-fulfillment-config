@@ -23,7 +23,7 @@
   <bodyvendorpayment>F</bodyvendorpayment>
   <checkspelling>F</checkspelling>
   <defaultchecked>F</defaultchecked>
-  <defaultselection>[scriptid=customlist_generic_processing_status._gps__pending]</defaultselection>
+  <defaultselection>[scriptid=customlist_generic_processing_status._gps_pending]</defaultselection>
   <defaultvalue></defaultvalue>
   <description>Provides an enhanced version of a boolean Checkbox flag by supporting multiple states, including &quot;none&quot; for mandatory selection scenarios.</description>
   <displayheight></displayheight>

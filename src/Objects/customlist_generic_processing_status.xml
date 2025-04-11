@@ -4,7 +4,7 @@
   <isordered>T</isordered>
   <name>Generic Processing Status</name>
   <customvalues>
-    <customvalue scriptid="_gps__pending">
+    <customvalue scriptid="_gps_pending">
       <isinactive>F</isinactive>
       <value>Pending</value>
     </customvalue>

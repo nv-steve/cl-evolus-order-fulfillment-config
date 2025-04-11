@@ -4,10 +4,15 @@
     </files>
     <objects>
         <path>~/Objects/customlist_generic_processing_status.xml</path>
+        <path>~/Objects/customlist_customer_type.xml</path>
         <path>~/Objects/custbody_fulfill_config_apply_statu.xml</path>
-<!--        <path>~/Objects/customlist_customer_type.xml</path>-->
+
+        <!-- Shipping Group stuff is being installed because the rule record has a dependency on it for filtering -->
+        <path>~/Objects/customrecord_shippinggroup.xml</path>
+        <path>~/Objects/custrecord_class_shippinggroup.xml</path>
+
         <path>~/Objects/customrecord_3pl_fulfill_config_rule.xml</path>
-<!--        <path>~/Objects/custentity_customer_type.xml</path>-->
+        <path>~/Objects/custentity_customer_type.xml</path>
         <path>~/Objects/customscript_ofc_configure_order.xml</path>
         <path>~/Objects/customworkflow_set_order_fulfill_config.xml</path>
         <path>~/Objects/customsearch_alert_fulfl_conf_apply_fail.xml</path>
