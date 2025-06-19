@@ -302,7 +302,14 @@ const CONFIG_RULE = {
         [ CONFIG_RULE.FIELD.CUSTOMER_TYPE, search.Operator.ANYOF, [criterion.customerTypeIID, SELECT_NONE] ], SEARCH_EXP_OP.AND,
         [ CONFIG_RULE.FIELD.DEST_COUNTRY, search.Operator.IS, criterion.destinationCountryIID ], SEARCH_EXP_OP.AND,
         [ CONFIG_RULE.FIELD.DEST_STATE, search.Operator.ANYOF, [criterion.destinationStateOrProvinceIID, SELECT_NONE] ], SEARCH_EXP_OP.AND,
-        [ CONFIG_RULE.FIELD.PRODUCT_CATALOG, search.Operator.ANYOF, [...criterion.productCatalogIIDs, SELECT_NONE] ]
+
+          //  I don't think this behaves the way we want it to. It will match none or any of the catalogs, but not all of the catalogs.
+          //  I believe we need a sub-OR filter
+          [
+            [ CONFIG_RULE.FIELD.PRODUCT_CATALOG, search.Operator.ANYOF, [ SELECT_NONE] ], SEARCH_EXP_OP.OR,
+            [ CONFIG_RULE.FIELD.PRODUCT_CATALOG, search.Operator.ALLOF, [...criterion.productCatalogIIDs ] ]
+          ]
+        // [ CONFIG_RULE.FIELD.PRODUCT_CATALOG, search.Operator.ANYOF, [...criterion.productCatalogIIDs, SELECT_NONE] ]
       ],
       columns: [
         { name: 'internalid', sort: search.Sort.DESC },
